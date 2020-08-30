@@ -1,6 +1,7 @@
 """
   Institucion:  Universidad Autonoma de Guadalajara (UAG)
   Nombre:       David Osollo
+                Enrique Martinez
   Proyecto:     Proyecto Robotina
   Materia:      Computacion Cognitiva
 

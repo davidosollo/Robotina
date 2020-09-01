@@ -1,7 +1,6 @@
 """
   Institucion:  Universidad Autonoma de Guadalajara (UAG)
-  Nombre:       David Osollo
-                Enrique Martinez
+  Nombre:       David Osollo, Enrique Martinez
   Proyecto:     Proyecto Robotina
   Materia:      Computacion Cognitiva
 
@@ -70,6 +69,8 @@ model = None
 sRed = None
 sBlue = None
 task_desc = None
+imgObs = None #EMS
+photoObs = None #EMS
 
 
 RoboMoveTime = 0.15
@@ -244,6 +245,8 @@ def init_app():
     global model
     global target_names
     global task_desc
+    global imgObs #EMS
+    global photoObs #EMS
 
     lienzo_principal = tkinter.Canvas(mainWin, borderwidth=1, width=frame_size * numCols + offset_x,
                             height=frame_size * numRens + offset_y)
@@ -296,6 +299,10 @@ def init_app():
 
     imgLimpio = Image.open("./img/limpio.jpeg").resize((frame_size, frame_size), Image.ANTIALIAS)
     photoLimpio = ImageTk.PhotoImage(imgLimpio)
+
+    #imagen de obstaculo
+    imgObs = Image.open("./img/obstaculo.png").resize((frame_size, frame_size), Image.ANTIALIAS) #EMS
+    photoObs = ImageTk.PhotoImage(imgObs) #EMS
 
     task_desc = ['LIMPIAR_CASA', 'PLANCHAR', 'COCINAR',  'LIMPIAR BAÑOS']
 
@@ -355,6 +362,8 @@ def set_tasks():
     global RoboCasilla
     global arr_tareas
     global RoboTrayectoria
+    global imgObs #EMS
+    global photoObs #EMS
 
     casillas_tareas_map.clear()
     casillas_logistica_map.clear()
@@ -384,7 +393,7 @@ def set_tasks():
                 image_to_show = photoPlan
                 Tipo_Casilla = 6
             else:
-                tarea = random.randint(1, 35)
+                tarea = random.randint(1, 40)
                 if ren == 0 or ren == 1:
                     image_to_show = photoCuadroAmarillo
                     Tipo_Casilla = 0
@@ -397,7 +406,6 @@ def set_tasks():
                     elif tarea == 2 and np.count_nonzero(arr_tareas == tarea) < 2:
                         image_to_show = photoPlanchar
                         arr_tareas = np.append(arr_tareas, tarea)
-
                         Tipo_Casilla = 8
                     elif tarea == 3 and np.count_nonzero(arr_tareas == tarea) < 2:
                         image_to_show = photoCocinar
@@ -407,6 +415,11 @@ def set_tasks():
                         image_to_show = photoToilet
                         arr_tareas = np.append(arr_tareas, tarea)
                         Tipo_Casilla = 10
+                    elif tarea == 5 or tarea == 20: #EMS
+                        image_to_show = photoObs
+                        arr_tareas = np.append(arr_tareas, tarea)
+                        Tipo_Casilla = 11
+
                     else:
                         image_to_show = photoCuadroAzul
                         Tipo_Casilla = 0
@@ -416,7 +429,7 @@ def set_tasks():
 
             if (Tipo_Casilla >= 1) and (Tipo_Casilla <=6):
                 casillas_tareas_map[casilla.id] = casilla
-            elif (Tipo_Casilla >= 7) and (Tipo_Casilla <=10):
+            elif (Tipo_Casilla >= 7) and (Tipo_Casilla <=11):
                 casillas_tareas_map[casilla.id] = casilla
 
     image_to_show = photoRobotina
@@ -462,7 +475,7 @@ def RoboLimpia():
     hambre = random.random()
     olor_baño = random.random()
 
-    xTest = np.array([[ olor_casa, tiempo_trabajo, hambre, olor_baño]])
+    xTest = np.array([[olor_casa, tiempo_trabajo, hambre, olor_baño]])
     results = model.predict(xTest)
     RoboSecs = getSec(results)
 
@@ -524,20 +537,24 @@ def RoboLimpia():
 
 def ReviewCharge(xNextTask, yNextTask):
 
+
+    ret = 0
     iRoboX, iRoboY = RoboCasilla.GetCoord()
 
-    iDistancia = math.sqrt(math.pow((xNextTask - iRoboX), 2) + math.pow((yNextTask - iRoboY), 2)) + 5
+    iDistancia = math.sqrt(math.pow((xNextTask - iRoboX), 2) + math.pow((yNextTask - iRoboY), 2)) + 3
     iDistancia = iDistancia + math.sqrt(math.pow((2 - iRoboX),2) + math.pow((0 -iRoboY),2))
     iDistancia = iDistancia + (iDistancia * .10)
 
     if progressEnergy['value'] < iDistancia:
         goRobot(2, 1)
         goRobot(2, 0)
+        ret = 1
         while progressEnergy['value'] < 100:
             time.sleep(1)
             cargaEnergy(20)
             lienzo_principal.update()
 
+    return ret
 
 def Unstuck(xM, yM, x2, y2):
 
@@ -595,6 +612,8 @@ def Unstuck(xM, yM, x2, y2):
             else:
                 iDirectinX = -iDirectinX
 
+        if x == x2 and y == y2:
+            break
 
         if xM != 0:
             if xM == 1 and (x - xIni) >= 1:
@@ -624,11 +643,15 @@ def Unstuck(xM, yM, x2, y2):
                 else:
                     iDirectinY = -iDirectinY
 
+        if x == x2 and y == y2:
+            break
+
         if yM != 0:
             if yM == 1 and (y - yIni) >= 1:
                 bStuck = False
             elif yM == -1 and (y - yIni) <= -1:
                 bStuck = False
+
 
 
 
@@ -654,25 +677,41 @@ def goRobot(x2, y2):
 
     while (x != x2 or y != y2):
 
-        if iStepsX > 1:
-            if x < x2:
-                if RoboCasilla.Move(1, 0, x2, y2) == 1:
-                    Unstuck(1, 0, x2, y2)
-            elif x > x2:
-                if RoboCasilla.Move(-1, 0, x2, y2) == 1:
-                    Unstuck(-1, 0, x2, y2)
-            iStepsX = iStepsX - 1
-            time.sleep(RoboMoveTime)
-            x, y = RoboCasilla.GetCoord()
-            lienzo_principal.update()
+        #if iStepsX > 1:
+        if x < x2:
+            if RoboCasilla.Move(1, 0, x2, y2) == 1:
+                Unstuck(1, 0, x2, y2)
+                if y != y2:
+                    iStepsX = abs((x - x2) / (y - y2))
+                if iStepsX != 0:
+                    iStepsY = abs(1 / iStepsX)
+        elif x > x2:
+            if RoboCasilla.Move(-1, 0, x2, y2) == 1:
+                Unstuck(-1, 0, x2, y2)
+                if y != y2:
+                    iStepsX = abs((x - x2) / (y - y2))
+                if iStepsX != 0:
+                    iStepsY = abs(1 / iStepsX)
+        iStepsX = iStepsX - 1
+        time.sleep(RoboMoveTime)
+        x, y = RoboCasilla.GetCoord()
+        lienzo_principal.update()
 
-        if iStepsY > 1:
-            if y < y2:
-                if RoboCasilla.Move(0, 1, x2, y2) == 1:
-                    Unstuck(0, 1, x2, y2)
-            elif y > y2:
-                if RoboCasilla.Move(0, -1, x2, y2) == 1:
-                    Unstuck(0, -1, x2, y2)
+        #if iStepsY > 1:
+        if y < y2:
+            if RoboCasilla.Move(0, 1, x2, y2) == 1:
+                Unstuck(0, 1, x2, y2)
+                if y != y2:
+                    iStepsX = abs((x - x2) / (y - y2))
+                if iStepsX != 0:
+                    iStepsY = abs(1 / iStepsX)
+        elif y > y2:
+            if RoboCasilla.Move(0, -1, x2, y2) == 1:
+                Unstuck(0, -1, x2, y2)
+                if y != y2:
+                    iStepsX = abs((x - x2) / (y - y2))
+                if iStepsX != 0:
+                    iStepsY = abs(1 / iStepsX)
 
 
             iStepsY = iStepsY - 1

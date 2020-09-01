@@ -129,6 +129,18 @@ class casilla_frame(object):
             elif iEje == 2:
                 if (y == self.ren + 1 or y == self.ren - 1) and (x == self.col):
                     return 1
+            if iEje == 3:
+                if (x == self.col + 1) and (y == self.ren):
+                    return 1
+            elif iEje == 4:
+                if (x == self.col - 1) and (y == self.ren):
+                    return 1
+            if iEje == 5:
+                if (y == self.ren + 1)  and (y == self.ren):
+                    return 1
+            elif iEje == 6:
+                if (y == self.ren - 1) and (x == self.col):
+                    return 1
         return 0
 
     def Move(self, col, ren, colGol, renGol):
@@ -616,9 +628,9 @@ def Unstuck(xM, yM, x2, y2):
             break
 
         if xM != 0:
-            if xM == 1 and (x - xIni) >= 1:
+            if xM == 1 and (x - xIni) >= 1 and RoboCasilla.Touch(x,y,3) == 0:
                 bStuck = False
-            elif xM == -1 and (x - xIni) <= -1:
+            elif xM == -1 and (x - xIni) <= -1 and RoboCasilla.Touch(x,y,4) == 0:
                 bStuck = False
 
         if bStuck == True:
@@ -647,9 +659,9 @@ def Unstuck(xM, yM, x2, y2):
             break
 
         if yM != 0:
-            if yM == 1 and (y - yIni) >= 1:
+            if yM == 1 and (y - yIni) >= 1 and RoboCasilla.Touch(x,y,5) == 0:
                 bStuck = False
-            elif yM == -1 and (y - yIni) <= -1:
+            elif yM == -1 and (y - yIni) <= -1 and RoboCasilla.Touch(x,y,6) == 0:
                 bStuck = False
 
 
